@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Libroo — Curated books for little readers</title>
+<meta name="description" content="Libroo hand-picks a shortlist of 12 books matched to your child's age and interests every month." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+/* ---------- Inline icons (no external icon package needed) ---------- */
+const Icon = ({ path, className }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round" className={className}>
+    {path}
+  </svg>
+);
+const Heart = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z" />
+  </svg>
+);
+const Menu = ({ className }) => (
+  <Icon className={className} path={<>
+    <line x1="4" x2="20" y1="12" y2="12" />
+    <line x1="4" x2="20" y1="6" y2="6" />
+    <line x1="4" x2="20" y1="18" y2="18" />
+  </>} />
+);
+const X = ({ className }) => (
+  <Icon className={className} path={<>
+    <line x1="18" x2="6" y1="6" y2="18" />
+    <line x1="6" x2="18" y1="6" y2="18" />
+  </>} />
+);
+const ArrowRight = ({ className }) => (
+  <Icon className={className} path={<>
+    <line x1="5" x2="19" y1="12" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </>} />
+);
+const Target = ({ className }) => (
+  <Icon className={className} path={<>
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </>} />
+);
+const BookOpen = ({ className }) => (
+  <Icon className={className} path={<>
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+  </>} />
+);
+const RefreshCcw = ({ className }) => (
+  <Icon className={className} path={<>
+    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+    <path d="M8 16H3v5" />
+  </>} />
+);
+const Sparkles = ({ className }) => (
+  <Icon className={className} path={
+    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+  } />
+);
+
+/* ---------- Content ---------- */
+const AGE_FILTERS = ["All ages", "0–2", "2–4", "4–6", "6–8", "8+"];
+
+const STEPS = [
+  {
+    icon: Sparkles,
+    step: "Step 01",
+    title: "We curate",
+    body: "We provide you with a shortlist of 12 books based on your child's age and interests so you are not overwhelmed with choice.",
+  },
+  {
+    icon: BookOpen,
+    step: "Step 02",
+    title: "You choose & read",
+    body: "Pick 4, 8, or all 12 books and enjoy reading, repeating, and rediscovering them together over the next 28 days.",
+  },
+  {
+    icon: RefreshCcw,
+    step: "Step 03",
+    title: "We collect & refresh",
+    body: "We collect your books and replace them with a newly curated selection.",
+  },
+];
+
+const VALUES = [
+  {
+    title: "Curation over collection",
+    body: "Children don't need more books — they need the right ones for their stage, removing the clutter, cost, and guesswork.",
+  },
+  {
+    title: "Reading aloud brings families together",
+    body: "Books build language. Reading together builds bonds — a familiar voice, a favourite page, small hands eager to turn it.",
+  },
+  {
+    title: "Wonder is worth protecting",
+    body: "Before children learn to read independently, they must first want to. We protect that sense of wonder with every title we select.",
+  },
+];
+
+function Wordmark({ size = "text-lg", className = "" }) {
+  return (
+    <span className={`font-['Fredoka'] font-semibold tracking-tight text-[#16233D] ${size} ${className}`}>
+      Libr<span className="text-[#E08A00]">oo</span>
+    </span>
+  );
+}
+
+function LibrooHomepage() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [ageFilter, setAgeFilter] = useState("All ages");
+
+  return (
+    <div className="min-h-screen bg-[#FBF6EA] font-['DM_Sans'] text-[#16233D] antialiased">
+      {/* ---------- Nav ---------- */}
+      <header className="sticky top-0 z-40 border-b border-[#E9E0CE] bg-[#FBF6EA]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <a href="#" className="flex items-center gap-2">
+            <Wordmark size="text-xl" />
+          </a>
+
+          <nav className="hidden items-center gap-8 text-sm font-semibold text-[#2C3A57] md:flex">
+            <a href="#library" className="transition hover:text-[#16233D]">Library</a>
+            <a href="#how" className="transition hover:text-[#16233D]">How it works</a>
+            <a href="#about" className="transition hover:text-[#16233D]">About us</a>
+          </nav>
+
+          <div className="hidden items-center gap-3 md:flex">
+            <a href="#login" className="text-sm font-semibold text-[#2C3A57] transition hover:text-[#16233D]">
+              Log in
+            </a>
+            <a href="#signup" className="rounded-full bg-[#FFC42E] px-5 py-2.5 text-sm font-semibold text-[#16233D] transition hover:bg-[#E08A00]">
+              Sign up
+            </a>
+          </div>
+
+          <button className="md:hidden" onClick={() => setMenuOpen((v) => !v)} aria-label="Toggle menu">
+            {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+
+        {menuOpen && (
+          <div className="flex flex-col gap-4 border-t border-[#E9E0CE] px-6 py-4 md:hidden">
+            <a href="#library" className="text-sm font-semibold text-[#2C3A57]">Library</a>
+            <a href="#how" className="text-sm font-semibold text-[#2C3A57]">How it works</a>
+            <a href="#about" className="text-sm font-semibold text-[#2C3A57]">About us</a>
+            <a href="#login" className="text-sm font-semibold text-[#2C3A57]">Log in</a>
+            <a href="#signup" className="rounded-full bg-[#FFC42E] px-5 py-2.5 text-center text-sm font-semibold text-[#16233D]">
+              Sign up
+            </a>
+          </div>
+        )}
+      </header>
+
+      {/* ---------- Hero ---------- */}
+      <section className="relative overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-70"
+          style={{ backgroundImage: "radial-gradient(#F4ECDA 2.5px, transparent 3px)", backgroundSize: "26px 26px" }}
+        />
+
+        <div className="relative mx-auto max-w-3xl px-6 py-16 md:py-24">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#FFEEC0] px-4 py-1.5 text-sm font-semibold text-[#E08A00]">
+            <Heart className="h-3.5 w-3.5" />
+            A library at your doorstep
+          </span>
+
+          <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-tight text-[#16233D] sm:text-5xl">
+            Curated books for your child, every month.
+          </h1>
+
+          <p className="mt-5 max-w-xl text-lg font-medium leading-relaxed text-[#2C3A57]">
+            Every title in our library is carefully selected to inspire
+            curiosity, imagination and a love of reading. We've spent hours
+            researching, reviewing and curating our collection, so you don't
+            have to. Every book earns its place in the Libroo library.
+          </p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a href="#signup" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FFC42E] px-7 py-3.5 text-base font-semibold text-[#16233D] shadow-sm transition hover:bg-[#E08A00]">
+              Sign up for free
+              <ArrowRight className="h-4 w-4" />
+            </a>
+            <a href="#how" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#E9E0CE] bg-[#FFFDF7] px-7 py-3.5 text-base font-semibold text-[#16233D] transition hover:border-[#16233D]">
+              See how it works
+            </a>
+          </div>
+        </div>
+
+        <div className="relative border-y border-[#E9E0CE] bg-[#FFFDF7]/70">
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-6 py-8 sm:grid-cols-3">
+            {[
+              { icon: Target, title: "Picked for their age", sub: "Based on their interest" },
+              { icon: BookOpen, title: "12-book shortlist", sub: "Refreshed monthly" },
+              { icon: RefreshCcw, title: "Swap every month", sub: "New picks, same love" },
+            ].map(({ icon: Icon2, title, sub }) => (
+              <div key={title} className="flex items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FFEEC0] text-[#E08A00]">
+                  <Icon2 className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-[#16233D]">{title}</p>
+                  <p className="text-sm text-[#6E7689]">{sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- How it works ---------- */}
+      <section id="how" className="mx-auto max-w-6xl px-6 py-20">
+        <div className="max-w-xl">
+          <p className="text-xs font-bold uppercase tracking-[.1em] text-[#E08A00]">How Libroo works</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#16233D] sm:text-4xl">
+            Borrow. Read. Repeat.
+          </h2>
+          <p className="mt-4 text-lg font-medium leading-relaxed text-[#2C3A57]">
+            28 days gives your child time to grow familiar with a story and
+            revisit favourite pages. Swapping keeps them exposed to as many
+            books as possible without you having to buy them all — and if
+            they fall in love with one, you can keep it for a small
+            additional price.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-8 md:grid-cols-3">
+          {STEPS.map(({ icon: Icon2, step, title, body }) => (
+            <div key={step} className="relative rounded-[18px] border border-[#E9E0CE] bg-[#FFFDF7] p-7">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFEEC0] text-[#E08A00]">
+                <Icon2 className="h-5 w-5" />
+              </span>
+              <p className="mt-5 text-xs font-bold uppercase tracking-[.1em] text-[#6E7689]">{step}</p>
+              <h3 className="mt-1 text-lg font-bold text-[#16233D]">{title}</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-[#2C3A57]">{body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 flex flex-col items-start justify-between gap-4 rounded-[18px] bg-[#FFEEC0] p-7 sm:flex-row sm:items-center">
+          <div>
+            <h3 className="text-lg font-bold text-[#16233D]">Looking for something specific?</h3>
+            <p className="mt-1 text-sm font-medium leading-relaxed text-[#2C3A57]">
+              Tell us what your child needs, and we'll create a custom
+              curation just for them.
+            </p>
+          </div>
+          <a href="#contact" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#FF8A4C] px-6 py-3 text-sm font-semibold text-[#16233D] transition hover:bg-[#E8734A]">
+            Get in touch
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
+      </section>
+
+      {/* ---------- Library peek ---------- */}
+      <section id="library" className="bg-[#FFFDF7] py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.1em] text-[#E08A00]">A peek into our library</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#16233D] sm:text-4xl">
+                The right book, right now
+              </h2>
+            </div>
+            <a href="#browse" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#3B82F6] hover:text-[#2563EB]">
+              Browse it all
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-2">
+            {AGE_FILTERS.map((age) => (
+              <button
+                key={age}
+                onClick={() => setAgeFilter(age)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  ageFilter === age ? "bg-[#16233D] text-white" : "bg-[#F4ECDA] text-[#2C3A57] hover:bg-[#FFEEC0]"
+                }`}
+              >
+                {age}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-[3/4] rounded-[18px] border-2 border-dashed border-[#E9E0CE] bg-[#F4ECDA] flex items-center justify-center text-center text-xs font-medium text-[#6E7689] p-2">
+                Book cover {i + 1}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- About ---------- */}
+      <section id="about" className="mx-auto max-w-3xl px-6 py-20">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[.1em] text-[#E08A00]">About us</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#16233D] sm:text-4xl">Why Libroo exists</h2>
+          <p className="mt-4 font-medium leading-relaxed text-[#2C3A57]">
+            Not every parent has the time to spend an afternoon in a library,
+            compare recommendations, or search for hidden gems and
+            bestsellers. We bring together the well-loved classics, the
+            beautifully illustrated favourites, and the rare books worth
+            knowing — for you. We do the research, so you can do the reading
+            with your kids.
+          </p>
+          <a href="#signup" className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#3B82F6] hover:text-[#2563EB]">
+            Start your reader's journey
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
+
+        <div className="mt-16 grid gap-8 sm:grid-cols-3">
+          {VALUES.map(({ title, body }) => (
+            <div key={title}>
+              <h3 className="text-base font-bold text-[#16233D]">{title}</h3>
+              <p className="mt-2 text-sm font-medium leading-relaxed text-[#2C3A57]">{body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ---------- Dashboard preview ---------- */}
+      <section className="bg-[#FFFDF7] py-20">
+        <div className="mx-auto grid max-w-6xl gap-12 px-6 md:grid-cols-2 md:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.1em] text-[#E08A00]">A dashboard just for parents</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#16233D] sm:text-4xl">
+              See your child's reading profile and progress
+            </h2>
+            <p className="mt-4 font-medium leading-relaxed text-[#2C3A57]">
+              Every book they finish updates their profile — from their
+              interests to their reading age — so you can watch the habit
+              build, month after month. Use it to understand what your child
+              gravitates toward, or share it directly with their teachers and
+              education providers.
+            </p>
+          </div>
+
+          <div className="rounded-[28px] border border-[#E9E0CE] bg-[#FBF6EA] p-6">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-full bg-[#FFC42E] text-[#16233D] flex items-center justify-center font-bold">N</div>
+              <div>
+                <p className="font-semibold text-[#16233D]">Noah</p>
+                <p className="text-xs text-[#6E7689]">Age 6 · Growing reader</p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="rounded-[14px] bg-[#FFFDF7] p-4">
+                <p className="text-2xl font-bold text-[#16233D]">5</p>
+                <p className="text-xs text-[#6E7689]">books read</p>
+              </div>
+              <div className="rounded-[14px] bg-[#FFFDF7] p-4">
+                <p className="text-2xl font-bold text-[#16233D]">148</p>
+                <p className="text-xs text-[#6E7689]">pages read</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[14px] bg-[#FFFDF7] p-4">
+              <div className="flex justify-between text-xs font-medium text-[#2C3A57]">
+                <span>Picture books</span>
+                <span>80%</span>
+              </div>
+              <div className="mt-1.5 h-2 w-full rounded-full bg-[#E9E0CE]">
+                <div className="h-2 w-4/5 rounded-full bg-[#3FC78C]" />
+              </div>
+              <div className="mt-3 flex justify-between text-xs font-medium text-[#2C3A57]">
+                <span>Story books</span>
+                <span>20%</span>
+              </div>
+              <div className="mt-1.5 h-2 w-full rounded-full bg-[#E9E0CE]">
+                <div className="h-2 w-1/5 rounded-full bg-[#3FC78C]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- Final CTA ---------- */}
+      <section id="signup" className="mx-auto max-w-6xl px-6 py-20">
+        <div className="rounded-[40px] bg-[#16233D] px-8 py-16 text-center sm:px-16">
+          <p className="text-xs font-bold uppercase tracking-[.1em] text-[#FFC42E]">Start today</p>
+          <h2 className="mx-auto mt-3 max-w-xl text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Your child's next favourite book is waiting
+          </h2>
+          <p className="mx-auto mt-4 max-w-md font-medium text-[#A9B4C9]">
+            Create a free account in about two minutes — your first
+            shortlist is curated the same day.
+          </p>
+          <a href="#signup" className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#FFC42E] px-7 py-3.5 text-base font-semibold text-[#16233D] transition hover:bg-[#FFD75E]">
+            Sign up for free
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
+      </section>
+
+      {/* ---------- Footer ---------- */}
+      <footer className="border-t border-[#E9E0CE] bg-[#FFFDF7]">
+        <div className="mx-auto max-w-6xl px-6 py-14">
+          <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
+            <div>
+              <a href="#" className="flex items-center gap-2">
+                <Wordmark size="text-xl" />
+              </a>
+              <p className="mt-3 text-sm font-medium leading-relaxed text-[#6E7689]">
+                Library at your doorstep. Book lending for little readers.
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-[#16233D]">Explore</p>
+              <ul className="mt-3 space-y-2 text-sm font-medium text-[#6E7689]">
+                <li><a href="#library" className="hover:text-[#16233D]">A peek into our library</a></li>
+                <li><a href="#how" className="hover:text-[#16233D]">How it works</a></li>
+                <li><a href="#about" className="hover:text-[#16233D]">About us</a></li>
+                <li><a href="#signup" className="hover:text-[#16233D]">Sign up free</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-[#16233D]">Account</p>
+              <ul className="mt-3 space-y-2 text-sm font-medium text-[#6E7689]">
+                <li><a href="#login" className="hover:text-[#16233D]">Log in</a></li>
+                <li><a href="#signup" className="hover:text-[#16233D]">Sign up</a></li>
+                <li><a href="#gift" className="hover:text-[#16233D]">Gift Libroo</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-sm font-bold text-[#16233D]">Help</p>
+              <ul className="mt-3 space-y-2 text-sm font-medium text-[#6E7689]">
+                <li><a href="#faq" className="hover:text-[#16233D]">FAQ</a></li>
+                <li><a href="#contact" className="hover:text-[#16233D]">Contact</a></li>
+                <li><a href="#shipping" className="hover:text-[#16233D]">Shipping &amp; returns</a></li>
+                <li><a href="#privacy" className="hover:text-[#16233D]">Privacy</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-10 border-t border-[#E9E0CE] pt-6 text-sm font-medium text-[#6E7689]">
+            © 2026 Libroo. Made with care for little readers.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<LibrooHomepage />);
+</script>
+</body>
+</html>
